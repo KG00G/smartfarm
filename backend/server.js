@@ -5,10 +5,11 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 3001;
 
 app.use(cors());
 app.use(express.json());
+app.use(express.static('public'));
 
 // 🔑 คีย์ลับสำหรับสร้างบัตรคิว (Token)
 const JWT_SECRET = 'SmartFarm_Super_Secret_Key_2026';
