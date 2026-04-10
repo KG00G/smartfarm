@@ -28,7 +28,7 @@ services:
     container_name: greenspace_backend
     restart: always
     ports:
-      - "3001:3001"
+      - "3000:3000"
     environment:
       DB_HOST: mysql
       DB_PORT: 3306
@@ -71,10 +71,10 @@ services:
       - frontend
   
   phpmyadmin:
-    image: arm64v8/phpmyadmin
+    image: phpmyadmin/phpmyadmin
     container_name: greenspace_phpmyadmin
     ports:
-      - "8888:80"
+      - "8080:80"
     environment:
       PMA_HOST: mysql # ต้องตรงกับชื่อ service ฐานข้อมูลของคุณ (ถ้าตั้งชื่ออื่น ให้เปลี่ยนตาม)
       PMA_PORT: 3306
