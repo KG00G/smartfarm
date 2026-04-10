@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartFarm</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌱</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+  :root {
+    --bg: #F4F7F9; --surface: #FFFFFF; --border: #E2E8F0;
+    --text: #1E293B; --text2: #64748B; --text3: #94A3B8;
+    --primary: #10B981; --primary-hover: #059669; --primary-light: #D1FAE5;
+    --sidebar-bg: #0F172A; --sidebar-hover: #1E293B; --sidebar-text: #94A3B8;
+    --blue: #3B82F6; --blue-bg: #EFF6FF; 
+    --red: #EF4444; --red-bg: #FEF2F2;
+    --orange: #F59E0B; --orange-bg: #FFFBEB;
+    --cyan: #06B6D4; --cyan-bg: #ECFEFF;
+    --shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
+    --shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.05), 0 2px 4px -2px rgba(15, 23, 42, 0.05);
+    --shadow-lg: 0 12px 24px -4px rgba(15, 23, 42, 0.08), 0 4px 6px -2px rgba(15, 23, 42, 0.04);
+    --shadow-glow: 0 0 15px rgba(16, 185, 129, 0.3);
+    --radius: 16px; --radius-sm: 10px;
+    --font: 'IBM Plex Sans Thai', sans-serif; --mono: 'Space Mono', monospace;
+  }
+  
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font); background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; display: flex; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; } 
+  ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 99px; }
+  ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+
+  .layout { display: flex; flex: 1; width: 100%; }
+  
+  .sidebar { width: 260px; background: var(--sidebar-bg); color: var(--sidebar-text); display: flex; flex-direction: column; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); flex-shrink: 0; z-index: 200; border-right: 1px solid rgba(255,255,255,0.05); }
+  .sidebar-header { height: 76px; display: flex; align-items: center; padding: 0 24px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+  .logo { font-weight: 700; font-size: 18px; color: #FFFFFF; display: flex; align-items: center; gap: 12px; letter-spacing: 0.5px; }
+  .logo-icon { width: 36px; height: 36px; background: linear-gradient(135deg, var(--primary), #34D399); border-radius: 10px; display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-glow); }
+  .logo-icon svg { width: 22px; height: 22px; fill: white; }
+  .sidebar-menu { padding: 24px 16px; flex: 1; overflow-y: auto; }
+  .nav-item { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-radius: var(--radius-sm); font-size: 14px; font-weight: 500; color: var(--sidebar-text); cursor: pointer; transition: all 0.25s ease; text-decoration: none; margin-bottom: 6px; }
+  .nav-item:hover { background: var(--sidebar-hover); color: #FFFFFF; transform: translateX(4px); }
+  .nav-item.active { background: var(--primary); color: #FFFFFF; font-weight: 600; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); }
+  .nav-item svg { width: 20px; height: 20px; flex-shrink: 0; opacity: 0.7; transition: opacity 0.2s; }
+  .nav-item.active svg { opacity: 1; }
+
+  .main-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--bg); }
+  .header { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); height: 76px; display: flex; align-items: center; justify-content: space-between; padding: 0 36px; z-index: 10; }
+  .menu-btn { display: none; background: none; border: none; cursor: pointer; color: var(--text); padding: 8px; border-radius: 8px; transition: background 0.2s; }
+  .menu-btn:hover { background: #F1F5F9; }
+  .user-profile { display: flex; align-items: center; gap: 14px; font-size: 14px; font-weight: 600; color: var(--text); cursor: pointer; padding: 6px 12px; border-radius: 99px; transition: background 0.2s; }
+  .user-profile:hover { background: #F1F5F9; }
+  .user-avatar { width: 38px; height: 38px; background: linear-gradient(135deg, var(--blue), #60A5FA); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3); border: 2px solid #FFF;}
+
+  .main { flex: 1; overflow-y: auto; padding: 24px 36px 48px; }
+  .page { display: none; animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+  .page.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+  
+  .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px; flex-wrap: wrap; gap: 16px; }
+  .page-title { font-size: 26px; font-weight: 700; color: var(--text); margin-bottom: 6px; letter-spacing: -0.5px; }
+  .page-subtitle { font-size: 14px; color: var(--text2); font-weight: 400; }
+
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 20px; border-radius: var(--radius-sm); font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); border: none; font-family: var(--font); }
+  .btn-primary { background: linear-gradient(to bottom right, var(--primary), #059669); color: white; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.25); border: 1px solid #059669; }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(16, 185, 129, 0.35); filter: brightness(1.05); }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); box-shadow: var(--shadow-sm); }
+  .btn-secondary:hover { background: #F8FAFC; border-color: #CBD5E1; transform: translateY(-1px); }
+  .btn-danger { background: #FEF2F2; color: var(--red); border: 1px solid #FECACA; }
+  .btn-danger:hover { background: #FEE2E2; border-color: #FCA5A5; }
+  .btn-sm { padding: 8px 14px; font-size: 13px; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; box-shadow: var(--shadow); transition: all 0.3s ease; position: relative; overflow: hidden; }
+  .card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); border-color: #CBD5E1; }
+  .card-title { font-size: 17px; font-weight: 700; color: var(--text); margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+  
+  .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px; }
+
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; display: flex; flex-direction: column; box-shadow: var(--shadow); transition: all 0.3s ease; }
+  .stat-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); border-color: var(--primary-light); }
+  .stat-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 16px; transition: transform 0.3s; }
+  .stat-card:hover .stat-icon { transform: scale(1.1); }
+  .stat-value { font-size: 32px; font-weight: 700; font-family: var(--mono); color: var(--text); line-height: 1.2; margin-bottom: 6px; }
+  .stat-label { font-size: 14px; font-weight: 500; color: var(--text2); letter-spacing: 0.5px; }
+
+  .badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 99px; font-size: 12px; font-weight: 600; letter-spacing: 0.2px; }
+  .badge-green { background: var(--primary-light); color: #065F46; border: 1px solid #A7F3D0; }
+  .badge-blue { background: var(--blue-bg); color: #1E3A8A; border: 1px solid #BFDBFE; }
+  .badge-orange { background: var(--orange-bg); color: #92400E; border: 1px solid #FDE68A; }
+  .badge-red { background: var(--red-bg); color: #991B1B; border: 1px solid #FECACA; }
+  .badge-gray { background: #F1F5F9; color: #475569; border: 1px solid #E2E8F0; }
+
+  .table-wrap { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden; box-shadow: var(--shadow); }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  thead { background: #F8FAFC; border-bottom: 1px solid var(--border); }
+  th { padding: 16px 24px; text-align: left; font-size: 13px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; }
+  td { padding: 16px 24px; border-bottom: 1px solid #F1F5F9; color: var(--text); vertical-align: middle; transition: background 0.2s; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #F8FAFC; }
+
+  .form-group { margin-bottom: 20px; }
+  .form-label { display: block; font-size: 13px; font-weight: 600; color: var(--text2); margin-bottom: 8px; letter-spacing: 0.3px; }
+  .form-input { width: 100%; padding: 14px 16px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 14px; font-family: var(--font); color: var(--text); background: #F8FAFC; outline: none; transition: all 0.2s; }
+  .form-input:hover { background: #F1F5F9; border-color: #CBD5E1; }
+  .form-input:focus { background: #FFFFFF; border-color: var(--primary); box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15); }
+  .form-input:disabled { background: #E2E8F0; color: #94A3B8; cursor: not-allowed; }
+  .form-select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%2364748B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 16px center; padding-right: 40px; cursor: pointer; }
+
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.4); z-index: 999; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); opacity: 0; transition: opacity 0.3s ease; }
+  .modal-overlay.show { display: flex; opacity: 1; }
+  .modal { background: var(--surface); border-radius: 20px; width: 100%; max-width: 520px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); overflow: hidden; transform: scale(0.95) translateY(20px); opacity: 0; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+  .modal-overlay.show .modal { transform: scale(1) translateY(0); opacity: 1; }
+  
+  .modal-header { padding: 24px 28px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: #FFFFFF; }
+  .modal-title { font-size: 20px; font-weight: 700; color: var(--text); }
+  .modal-close { background: #F1F5F9; border: none; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text2); transition: all 0.2s; font-size: 18px; }
+  .modal-close:hover { background: #FEE2E2; color: var(--red); transform: rotate(90deg); }
+  
+  .modal-body { padding: 28px; max-height: 65vh; overflow-y: auto; background: #FAFAFA; }
+  .modal-footer { padding: 20px 28px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 12px; background: #FFFFFF; }
+
+  .auth-wrapper { background: rgba(255, 255, 255, 0.95); padding: 48px 40px; border-radius: 24px; width: 100%; max-width: 420px; box-shadow: 0 20px 40px rgba(0,0,0,0.1), 0 0 0 1px rgba(255,255,255,0.5) inset; max-height: 90vh; overflow-y: auto; text-align: center; }
+  
+  .toast-container { position: fixed; bottom: 40px; right: 40px; z-index: 9999; display: flex; flex-direction: column; gap: 12px; pointer-events: none; }
+  .toast { background: var(--surface); padding: 16px 24px; border-radius: 12px; font-size: 14px; font-weight: 600; box-shadow: var(--shadow-lg); transform: translateX(120%); opacity: 0; transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); display: flex; align-items: center; gap: 14px; min-width: 300px; border-left: 4px solid var(--text); pointer-events: auto; }
+  .toast.show { transform: translateX(0); opacity: 1; }
+  .toast.success { border-left-color: var(--primary); }
+  .toast.error { border-left-color: var(--red); }
+  .toast.hiding { transform: translateX(120%); opacity: 0; }
+  .toast-icon { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; background: #F1F5F9;}
+  .toast.success .toast-icon { background: var(--primary-light); color: #059669; }
+  .toast.error .toast-icon { background: var(--red-bg); color: var(--red); }
+  
+  .spinner { border: 3px solid rgba(0,0,0,0.1); border-radius: 50%; border-top: 3px solid var(--primary); width: 24px; height: 24px; animation: spin 1s linear infinite; display: inline-block;}
+  @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  .loading { text-align: center; padding: 40px; color: var(--text2); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; font-weight: 500; }
+  .chart-container { position: relative; height: 320px; width: 100%; margin-top: 10px;}
+
+  @media (max-width: 768px) {
+    .sidebar { position: fixed; transform: translateX(-100%); height: 100%; box-shadow: var(--shadow-lg); }
+    .sidebar.open { transform: translateX(0); }
+    .menu-btn { display: block; }
+    .header { padding: 0 20px; }
+    .main { padding: 20px; }
+    .toast-container { bottom: 20px; right: 20px; left: 20px; align-items: center; }
+    .toast { min-width: 100%; width: 100%; justify-content: center;}
+    .grid-4 { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 480px) {
+    .grid-4 { grid-template-columns: 1fr; }
+    .page-header { flex-direction: column; align-items: flex-start; }
+    .page-header > div:last-child { width: 100%; }
+    .page-header > div:last-child > * { flex: 1; }
+  }
+</style>
+</head>
+<body>
+
+<div id="auth-modal" style="position: fixed; inset: 0; background: rgba(15,23,42,0.85); z-index: 9999; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);">
+    <div class="auth-wrapper">
+        <div style="margin-bottom: 28px;">
+            <div style="width: 56px; height: 56px; background: linear-gradient(135deg, var(--primary), #34D399); border-radius: 16px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px; box-shadow: var(--shadow-glow);">
+                <svg width="32" height="32" fill="white" viewBox="0 0 24 24"><path d="M17 8C8 10 5.9 16.17 3.82 21.34L5.71 22l1-2.3A4.49 4.49 0 008 20C19 20 22 3 22 3c-1 2-8 2-8 2z"/></svg>
+            </div>
+            <h2 id="auth-title" style="color: var(--text); font-size: 24px; font-weight: 700; letter-spacing: -0.5px;">เข้าสู่ระบบ SmartFarm</h2>
+        </div>
+        
+        <div class="form-group"><input type="text" id="auth-username" class="form-input" placeholder="ชื่อผู้ใช้งาน (Username) *"></div>
+        <div class="form-group" id="group-email" style="display:none;"><input type="email" id="auth-email" class="form-input" placeholder="อีเมล (Email) *"></div>
+        
+        <div class="form-row" id="group-name" style="display:none; gap:12px;">
+            <div class="form-group" style="flex:1; margin-bottom: 20px;"><input type="text" id="auth-firstname" class="form-input" placeholder="ชื่อจริง *"></div>
+            <div class="form-group" style="flex:1; margin-bottom: 20px;"><input type="text" id="auth-lastname" class="form-input" placeholder="นามสกุล"></div>
+        </div>
+        
+        <div class="form-group" id="group-phone" style="display:none;"><input type="tel" id="auth-phone" class="form-input" placeholder="เบอร์โทรศัพท์"></div>
+        <div class="form-group" id="group-loc" style="display:none;"><input type="text" id="auth-location" class="form-input" placeholder="ที่อยู่ / ตำแหน่งที่ตั้งฟาร์ม"></div>
+        
+        <div class="form-group" id="group-role" style="display:none; text-align:left;">
+            <label class="form-label" style="color:var(--text);">ต้องการใช้งานในฐานะ *</label>
+            <select id="auth-role" class="form-input form-select" style="background-color:#F8FAFC;">
+                <option value="owner">👨‍🌾 เจ้าของฟาร์ม (สร้างฟาร์มใหม่ของตัวเอง)</option>
+                <option value="member">👷 พนักงาน / ผู้ดูแล (รอรับคำเชิญเข้าฟาร์ม)</option>
+            </select>
+        </div>
+
+        <div class="form-group" id="group-password"><input type="password" id="auth-password" class="form-input" placeholder="รหัสผ่าน (Password) *"></div>
+        <div class="form-group" id="group-new-password" style="display:none;"><input type="password" id="auth-new-password" class="form-input" placeholder="รหัสผ่านใหม่ (New Password) *"></div>
+        
+        <button id="auth-btn" onclick="handleAuth()" class="btn btn-primary" style="width: 100%; padding: 14px; font-size: 15px; margin-top: 10px;">เข้าสู่ระบบ</button>
+        
+        <p style="text-align: center; margin-top: 24px; font-size: 13px; color: var(--text2); line-height: 1.6;" id="auth-switch-text"></p>
+    </div>
+</div>
+
+<div class="layout">
+  <div class="modal-overlay" id="sidebarOverlay" onclick="toggleSidebar()" style="z-index: 150;"></div>
+  
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-header"><div class="logo"><div class="logo-icon"><svg viewBox="0 0 24 24"><path d="M17 8C8 10 5.9 16.17 3.82 21.34L5.71 22l1-2.3A4.49 4.49 0 008 20C19 20 22 3 22 3c-1 2-8 2-8 2z"/></svg></div>SmartFarm</div></div>
+    <div class="sidebar-menu">
+      <div style="font-size: 11px; color: #64748B; font-weight: 700; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; padding-left: 4px;">Menu</div>
+      <a class="nav-item active" data-page="dashboardPage" onclick="navTo('dashboardPage',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg> แดชบอร์ด</a>
+      <a class="nav-item" data-page="devicesPage" onclick="navTo('devicesPage',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/></svg> จัดการแปลง & อุปกรณ์</a>
+      <a class="nav-item" data-page="historyPage" onclick="navTo('historyPage',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg> ประวัติ & วิเคราะห์</a>
+      <a class="nav-item" data-page="vegPage" onclick="navTo('vegPage',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg> คลังผักพืช</a>
+      <a class="nav-item" data-page="settingsPage" onclick="navTo('settingsPage',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg> ตั้งค่าอุปกรณ์</a>
+      
+      <div style="font-size: 11px; color: #64748B; font-weight: 700; margin-top: 24px; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; padding-left: 4px;">Account</div>
+      <a class="nav-item" data-page="profilePage" onclick="navTo('profilePage',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg> โปรไฟล์ส่วนตัว</a>
+      <a class="nav-item" data-page="membersPage" onclick="navTo('membersPage',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg> จัดการสมาชิกฟาร์ม</a>
+    </div>
+    <div style="padding: 20px;"><button class="btn btn-secondary" style="width: 100%; color: var(--red); border-color: #FEE2E2; background: #FEF2F2;" onclick="logout()">🚪 ออกจากระบบ</button></div>
+  </nav>
+
+  <div class="main-wrapper">
+    <header class="header">
+      <button class="menu-btn" onclick="toggleSidebar()"><svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+      <div style="flex: 1;"></div>
+      <div class="user-profile" onclick="navTo('profilePage', document.querySelectorAll('.nav-item')[5])">
+          <span id="display-username">กำลังโหลด...</span>
+          <div class="user-avatar" id="display-avatar">U</div>
+      </div>
+    </header>
+
+    <main class="main">
+
+      <div class="page active" id="dashboardPage">
+        <div class="page-header">
+          <div><h1 class="page-title">แดชบอร์ด</h1><div class="page-subtitle">ภาพรวมระบบฟาร์มอัจฉริยะ · <span id="lastUpdate">กำลังอัปเดต...</span></div></div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;">
+            <select class="form-input form-select" id="dashDeviceSelect" onchange="onDashDeviceChange()" style="width:220px; background-color:#fff;"><option value="">-- โหลดอุปกรณ์ --</option></select>
+            <button class="btn btn-secondary" onclick="loadDashData()">🔄 รีเฟรช</button>
+            <button class="btn btn-primary" onclick="manualWater()">💧 สั่งรดน้ำด้วยมือ</button>
+          </div>
+        </div>
+
+        <div class="grid-4" style="margin-bottom: 24px;">
+          <div class="stat-card">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+              <div class="stat-icon" style="color: var(--blue); background: var(--blue-bg);">💧</div><div id="ss-moisture"></div>
+            </div>
+            <div class="stat-value" id="sv-moisture">--<span style="font-size:16px">%</span></div><div class="stat-label">ความชื้นดิน</div>
+          </div>
+          <div class="stat-card">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+              <div class="stat-icon" style="color: #EF4444; background: #FEF2F2;">🌡️</div><div id="ss-temp"></div>
+            </div>
+            <div class="stat-value" id="sv-temp">--<span style="font-size:16px">°C</span></div><div class="stat-label">อุณหภูมิอากาศ</div>
+          </div>
+          <div class="stat-card">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+              <div class="stat-icon" style="color: var(--orange); background: var(--orange-bg);">☀️</div><div id="ss-light"></div>
+            </div>
+            <div class="stat-value" id="sv-light" style="font-size:22px;">--</div><div class="stat-label">แสงสว่าง</div>
+          </div>
+          <div class="stat-card">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+              <div class="stat-icon" style="color: var(--cyan); background: var(--cyan-bg);">🌫️</div><div id="ss-humid"></div>
+            </div>
+            <div class="stat-value" id="sv-humid">--<span style="font-size:16px">%</span></div><div class="stat-label">ความชื้นอากาศ</div>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap:24px;">
+          <div class="card">
+            <div class="card-title">🌱 ข้อมูลแปลงเพาะปลูก</div>
+            <div id="dashPlotInfo" style="display:flex; flex-direction:column; gap:12px;"><div class="loading"><div class="spinner"></div></div></div>
+          </div>
+          <div class="card">
+            <div class="card-title">⚙️ สถานะฮาร์ดแวร์</div>
+            <div id="hardwareStatus" style="display:flex; flex-direction:column;"><div class="loading"><div class="spinner"></div></div></div>
+          </div>
+          <div class="card">
+            <div class="card-title">ประวัติการปั๊มน้ำล่าสุด</div>
+            <div id="recentWatering"><div class="loading"><div class="spinner"></div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="page" id="devicesPage">
+        <div class="page-header">
+          <div><h1 class="page-title">จัดการแปลง & อุปกรณ์</h1><div class="page-subtitle">เพิ่มอุปกรณ์ กำหนดพิกัดแปลง และเลือกพืชที่จะปลูก</div></div>
+          <div style="display:flex;gap:12px;">
+            <button class="btn btn-secondary" onclick="openPlantingModal()">🌱 ปลูกผักลงแปลง</button>
+            <button class="btn btn-primary" onclick="openModal('addDeviceModal')">➕ เพิ่มอุปกรณ์ใหม่</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>สถานะ</th><th>ตำแหน่ง/ชื่อแปลง</th><th>MAC Address</th><th>พืชที่ปลูก (รวม)</th><th>โหมดปั๊ม</th><th style="text-align:right;">จัดการ</th></tr></thead>
+            <tbody id="devicesTableBody"><tr><td colspan="6" class="loading"><div class="spinner"></div> โหลดข้อมูลอุปกรณ์...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="page" id="historyPage">
+        <div class="page-header">
+          <div><h1 class="page-title">ประวัติ & วิเคราะห์</h1><div class="page-subtitle">ดูย้อนหลังค่าเซ็นเซอร์และประวัติการทำงานของปั๊มน้ำ</div></div>
+          <div style="display:flex; gap:12px;">
+            <select class="form-input form-select" id="histDeviceSelect" onchange="loadHistory()" style="width:200px;"></select>
+            <select class="form-input form-select" id="histDays" onchange="loadHistory()" style="width:160px;">
+                <option value="1">24 ชั่วโมงล่าสุด</option>
+                <option value="7" selected>7 วันล่าสุด</option>
+                <option value="30">30 วัน (1 เดือน)</option>
+            </select>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom: 24px;"><div class="card-title">📈 กราฟสภาพแวดล้อม</div><div class="chart-container"><canvas id="historyChart"></canvas></div></div>
+        <div class="card"><div class="card-title">ประวัติปั๊มน้ำ (Pump Log)</div><div style="margin: -24px; margin-top: 16px; overflow-x: auto;"><table style="width: 100%;"><thead><tr><th>เวลาเริ่ม - สิ้นสุด</th><th>ประเภท</th><th>ระยะเวลาทำงาน</th><th>ปริมาณน้ำประเมิน</th></tr></thead><tbody id="historyTableBody"><tr><td colspan="4" class="loading"><div class="spinner"></div> กำลังโหลด...</td></tr></tbody></table></div></div>
+      </div>
+
+      <div class="page" id="vegPage">
+        <div class="page-header">
+          <div><h1 class="page-title">คลังพืชผัก</h1><div class="page-subtitle">จัดการตารางมาตรฐานพืช (Master Data)</div></div>
+          <button class="btn btn-primary" onclick="openAddVegModal()">➕ เพิ่มพืชมาตรฐาน</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>#</th><th>ชื่อพืช</th><th>ระดับแสง</th><th>ความชื้นดินขั้นต่ำ (%)</th><th style="text-align:right;">จัดการ</th></tr></thead>
+            <tbody id="vegTableBody"><tr><td colspan="5" class="loading"><div class="spinner"></div> โหลดข้อมูล...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="page" id="settingsPage">
+        <div class="page-header"><div><h1 class="page-title">ตั้งค่าอุปกรณ์ปั๊มน้ำ</h1><div class="page-subtitle">ปรับแก้โหมดการทำงานและเกณฑ์เซ็นเซอร์</div></div></div>
+        <div style="max-width: 600px;">
+          <div class="card" style="margin-bottom: 24px;">
+            <div class="form-group" style="margin: 0;"><label class="form-label">เลือกอุปกรณ์ที่ต้องการตั้งค่า</label><select class="form-input form-select" id="settingsDeviceSelect" onchange="loadSettings()"><option value="">-- เลือกอุปกรณ์ --</option></select></div>
+          </div>
+          <div id="settingsForm" style="display:none; flex-direction:column; gap:24px;">
+            <div class="card">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; border-bottom: 1px solid var(--border); padding-bottom: 20px;">
+                <div><div style="font-size:16px; font-weight:700; color:var(--text);">🤖 โหมดการทำงานของปั๊ม</div><div style="font-size:13px; color:var(--text2); margin-top:6px;">เลือกสลับเป็นอัตโนมัติ (Auto) หรือควบคุมเองด้วยมือ (Manual)</div></div>
+                <select class="form-input form-select" id="s-mode" style="width: 150px; background-color:var(--bg);"><option value="auto">Auto (อัตโนมัติ)</option><option value="manual">Manual (กดเอง)</option></select>
+              </div>
+              <div class="form-group"><label class="form-label">ความชื้นดินขั้นต่ำที่ปั๊มจะเริ่มทำงาน (%)</label><input type="number" class="form-input" id="s-low" min="0" max="100" placeholder="เช่น 40"></div>
+              <div class="form-group" style="margin-bottom:0;"><label class="form-label">ระยะเวลาที่ปั๊มทำงานแต่ละครั้ง (วินาที)</label><input type="number" class="form-input" id="s-dur" min="5" max="300" placeholder="เช่น 120"></div>
+            </div>
+            <button class="btn btn-primary" onclick="saveSettings()" style="width:100%; justify-content:center; padding: 14px; font-size:15px;">💾 บันทึกการตั้งค่าฮาร์ดแวร์</button>
+          </div>
+        </div>
+      </div>
+      
+      <div class="page" id="profilePage">
+        <div class="page-header">
+          <div><h1 class="page-title">โปรไฟล์ส่วนตัว</h1><div class="page-subtitle">จัดการข้อมูลบัญชีผู้ใช้งานของคุณ</div></div>
+        </div>
+        <div class="card" style="max-width: 600px;">
+          <div class="form-group"><label class="form-label">ชื่อผู้ใช้งาน (Username - ไม่สามารถเปลี่ยนได้)</label><input type="text" class="form-input" id="prof-username" disabled></div>
+          <div class="form-group"><label class="form-label">อีเมล (Email)</label><input type="email" class="form-input" id="prof-email"></div>
+          <div class="form-row" style="display:flex;gap:16px; margin-bottom: 20px;">
+              <div class="form-group" style="flex:1; margin-bottom:0;"><label class="form-label">ชื่อจริง</label><input type="text" class="form-input" id="prof-firstname"></div>
+              <div class="form-group" style="flex:1; margin-bottom:0;"><label class="form-label">นามสกุล</label><input type="text" class="form-input" id="prof-lastname"></div>
+          </div>
+          <div class="form-group"><label class="form-label">เบอร์โทรศัพท์ติดต่อ</label><input type="tel" class="form-input" id="prof-phone"></div>
+          <div class="form-group"><label class="form-label">ที่อยู่ / ตำแหน่ง</label><input type="text" class="form-input" id="prof-location"></div>
+          <button class="btn btn-primary" onclick="saveProfile()" style="width:100%; justify-content:center; padding: 14px; margin-top: 12px; font-size:15px;">💾 บันทึกข้อมูลโปรไฟล์</button>
+        </div>
+      </div>
+
+      <div class="page" id="membersPage">
+        <div class="page-header">
+          <div><h1 class="page-title">จัดการสมาชิกฟาร์ม</h1><div class="page-subtitle">เพิ่มลูกน้องหรือผู้ดูแลร่วมเข้ามาในฟาร์มของคุณ</div></div>
+          <button id="btn-add-member" class="btn btn-primary" onclick="openModal('addMemberModal')" style="display:none;">➕ เชิญสมาชิกใหม่</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>ชื่อ-นามสกุล</th><th>ชื่อผู้ใช้งาน (Username)</th><th>อีเมลติดต่อ</th><th>สิทธิ์ (Role)</th><th style="text-align:right;">จัดการ</th></tr></thead>
+            <tbody id="membersTableBody"><tr><td colspan="5" class="loading"><div class="spinner"></div> โหลดรายชื่อสมาชิก...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+      
+    </main>
+  </div>
+</div>
+
+<div class="modal-overlay" id="addDeviceModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title">➕ เพิ่มอุปกรณ์ใหม่</h3>
+      <button class="modal-close" onclick="closeModal('addDeviceModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group" style="margin-bottom: 20px;">
+          <label class="form-label">เลือกวิธีเพิ่มอุปกรณ์</label>
+          <select id="add-device-method" onchange="toggleAddDeviceMethod()" class="form-input form-select">
+              <option value="manual">✍️ กรอกข้อมูลเอง (Manual)</option>
+              <option value="scan">📡 ค้นหาอุปกรณ์ใกล้เคียง (Bluetooth)</option>
+          </select>
+      </div>
+      <div id="scan-input-section" class="form-group" style="display:none; margin-bottom: 20px; text-align: center; padding: 24px 16px; background:#F8FAFC; border-radius: 12px; border: 1px dashed var(--border);">
+          <div style="font-size:13px; color:var(--text2); margin-bottom: 16px; line-height: 1.5;">
+              เบราว์เซอร์จะเปิดหน้าต่างค้นหาอุปกรณ์<br>กรุณาเปิดบอร์ด ESP32 และเลือกอุปกรณ์จากหน้าต่างที่แสดง
+          </div>
+          <button class="btn btn-primary" style="width: 100%; margin-bottom: 12px;" onclick="scanRealDevices()">🔍 เริ่มค้นหาอุปกรณ์ Bluetooth</button>
+          <div id="scanResultArea"></div>
+      </div>
+      <div id="manual-input-section">
+          <div class="form-group"><label class="form-label">รหัส MAC Address (Device ID) *</label><input type="text" id="new-dev-mac" class="form-input" placeholder="เช่น AA:BB:CC:DD:EE:FF"></div>
+      </div>
+      <div class="form-group"><label class="form-label">ชื่อแปลง / จุดติดตั้ง</label><input type="text" class="form-input" id="new-dev-loc" placeholder="เช่น แปลงผักกาดหลังบ้าน"></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('addDeviceModal')">ยกเลิก</button><button class="btn btn-primary" onclick="saveDevice()">บันทึกข้อมูลอุปกรณ์</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="addVegModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title">🌿 เพิ่มพืชมาตรฐาน</h3>
+      <button class="modal-close" onclick="closeModal('addVegModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">ชื่อพืช</label><input type="text" class="form-input" id="veg-name" placeholder="เช่น ผักบุ้ง, กะเพรา"></div>
+      <div class="form-group"><label class="form-label">ความชื้นดินขั้นต่ำที่ต้องการ (%)</label><input type="number" class="form-input" id="veg-min" value="40"></div>
+      <div class="form-row" style="display:flex;gap:16px;">
+        <div class="form-group" style="flex:1"><label class="form-label">เลือกแปลงที่จะปลูกเลย (ถ้ามี)</label><select id="veg-device" class="form-input form-select"><option value="">-- เก็บเข้าคลัง (ยังไม่ปลูก) --</option></select></div>
+        <div class="form-group" style="flex:1">
+          <label class="form-label">ระดับแสงที่เหมาะสม</label>
+          <select id="veg-light" class="form-input form-select">
+            <option value="2000">ร่มรำไร (แสงน้อย)</option>
+            <option value="10000" selected>ครึ่งวัน (ปานกลาง)</option>
+            <option value="25000">กลางแจ้ง (แสงจ้า)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('addVegModal')">ยกเลิก</button><button class="btn btn-primary" onclick="saveVeg()">บันทึกข้อมูลพืช</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="addPlantToPlotModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title">🌱 นำพืชลงแปลงปลูก</h3>
+      <button class="modal-close" onclick="closeModal('addPlantToPlotModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">1. เลือกแปลงเพาะปลูก (1 แปลงปลูกได้หลายพืช)</label><select class="form-input form-select" id="plantSelectDevice"></select></div>
+      <div class="form-group"><label class="form-label">2. เลือกพืชที่ต้องการปลูก</label><select class="form-input form-select" id="plantSelectVeg"></select></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('addPlantToPlotModal')">ยกเลิก</button><button class="btn btn-primary" onclick="submitPlantToPlot()">ยืนยันการปลูก</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="waterModal">
+  <div class="modal">
+    <div class="modal-header"><h3 class="modal-title">💧 สั่งรดน้ำด้วยมือ (Manual)</h3><button class="modal-close" onclick="closeModal('waterModal')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">ระยะเวลาให้ปั๊มน้ำทำงาน (วินาที)</label>
+        <input type="number" class="form-input" id="water-dur" value="30" min="5" max="300">
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('waterModal')">ยกเลิก</button><button class="btn btn-primary" style="background:#3B82F6; border-color:#3B82F6; box-shadow:0 4px 10px rgba(59,130,246,0.3);" onclick="confirmWater()">💦 เริ่มรดน้ำทันที</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="addMemberModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title">➕ เชิญสมาชิกใหม่</h3>
+      <button class="modal-close" onclick="closeModal('addMemberModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">ชื่อผู้ใช้งาน (Username) ของลูกน้อง</label>
+        <input type="text" class="form-input" id="member-username" placeholder="กรอก Username ที่ต้องการเชิญเข้าฟาร์ม">
+      </div>
+      <p style="font-size:13px; color:var(--text2); line-height:1.5;">* พนักงานต้องทำการสมัครบัญชีในระบบ SmartFarm (เลือก Role: พนักงาน) ก่อน ถึงจะสามารถเชิญเข้ามาร่วมในฟาร์มได้</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('addMemberModal')">ยกเลิก</button>
+      <button class="btn btn-primary" onclick="addMember()">ส่งคำเชิญ</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+const API = 'http://localhost:3000/api'; 
+let sensorInterval = null;
+let currentDashDevice = null;
+let chartInstance = null; 
+let authMode = 'login'; 
+
+// ==========================================
+// 🔒 Auth & Network
+// ==========================================
+function setAuthMode(mode) {
+    authMode = mode;
+    
+    document.getElementById('group-email').style.display = (mode === 'register' || mode === 'forgot') ? 'block' : 'none';
+    document.getElementById('group-name').style.display = mode === 'register' ? 'flex' : 'none';
+    document.getElementById('group-phone').style.display = mode === 'register' ? 'block' : 'none';
+    document.getElementById('group-loc').style.display = mode === 'register' ? 'block' : 'none';
+    document.getElementById('group-role').style.display = mode === 'register' ? 'block' : 'none';
+    
+    document.getElementById('group-password').style.display = (mode === 'login' || mode === 'register') ? 'block' : 'none';
+    document.getElementById('group-new-password').style.display = mode === 'forgot' ? 'block' : 'none';
+
+    if (mode === 'login') {
+        document.getElementById('auth-title').innerText = 'เข้าสู่ระบบ SmartFarm';
+        document.getElementById('auth-btn').innerText = 'เข้าสู่ระบบ';
+        document.getElementById('auth-switch-text').innerHTML = 'ยังไม่มีบัญชี? <a href="#" style="color:var(--primary);font-weight:600;" onclick="setAuthMode(\'register\')">สมัครสมาชิกใหม่</a><br><br><a href="#" style="color:var(--text3);text-decoration:underline;" onclick="setAuthMode(\'forgot\')">ลืมรหัสผ่านใช่หรือไม่?</a>';
+    } else if (mode === 'register') {
+        document.getElementById('auth-title').innerText = 'สร้างบัญชีผู้ใช้ใหม่';
+        document.getElementById('auth-btn').innerText = 'ลงทะเบียน';
+        document.getElementById('auth-switch-text').innerHTML = 'มีบัญชีอยู่แล้ว? <a href="#" style="color:var(--primary);font-weight:600;" onclick="setAuthMode(\'login\')">เข้าสู่ระบบ</a>';
+    } else if (mode === 'forgot') {
+        document.getElementById('auth-title').innerText = 'รีเซ็ตรหัสผ่าน';
+        document.getElementById('auth-btn').innerText = 'เปลี่ยนรหัสผ่านใหม่';
+        document.getElementById('auth-switch-text').innerHTML = 'จำรหัสผ่านได้แล้ว? <a href="#" style="color:var(--primary);font-weight:600;" onclick="setAuthMode(\'login\')">เข้าสู่ระบบเลย</a>';
+    }
+}
+
+async function handleAuth() {
+    const username = document.getElementById('auth-username').value;
+    const email = document.getElementById('auth-email').value;
+    const password = document.getElementById('auth-password').value;
+    const new_password = document.getElementById('auth-new-password').value;
+    const first_name = document.getElementById('auth-firstname').value;
+    const last_name = document.getElementById('auth-lastname').value;
+    const phone = document.getElementById('auth-phone').value;
+    const location = document.getElementById('auth-location').value;
+    const role = document.getElementById('auth-role') ? document.getElementById('auth-role').value : 'owner';
+
+    let endpoint = '';
+    let payload = {};
+
+    if (authMode === 'login') {
+        if (!username || !password) return toast('กรุณากรอกชื่อผู้ใช้และรหัสผ่าน', 'error');
+        endpoint = '/login';
+        payload = { username, password };
+    } else if (authMode === 'register') {
+        if (!username || !password || !email || !first_name) return toast('กรุณากรอกข้อมูลบังคับ (*) ให้ครบถ้วน', 'error');
+        endpoint = '/register';
+        payload = { username, password, email, first_name, last_name, phone, location, role };
+    } else if (authMode === 'forgot') {
+        if (!username || !email || !new_password) return toast('กรุณากรอกข้อมูลให้ครบถ้วน', 'error');
+        endpoint = '/forgot-password';
+        payload = { username, email, new_password };
+    }
+
+    try {
+        const res = await fetch(API + endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        const data = await res.json();
+        if (res.ok) {
+            if (authMode === 'login') {
+                localStorage.setItem('greenspace_token', data.token);
+                localStorage.setItem('greenspace_user', data.user.first_name || data.user.username);
+                document.getElementById('auth-modal').style.display = 'none';
+                toast('เข้าสู่ระบบสำเร็จ!', 'success'); initApp(); 
+            } else if (authMode === 'register') { 
+                toast('สมัครสมาชิกสำเร็จ! กรุณาเข้าสู่ระบบ', 'success'); setAuthMode('login'); 
+            } else if (authMode === 'forgot') {
+                toast('เปลี่ยนรหัสผ่านใหม่สำเร็จ! กรุณาเข้าสู่ระบบ', 'success'); setAuthMode('login');
+            }
+        } else { toast('เกิดข้อผิดพลาด: ' + data.error, 'error'); }
+    } catch (err) { toast('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้', 'error'); }
+}
+
+function logout() { localStorage.removeItem('greenspace_token'); localStorage.removeItem('greenspace_user'); window.location.reload(); }
+
+async function apiFetch(path, opts = {}) {
+    const token = localStorage.getItem('greenspace_token');
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const res = await fetch(API + path, { headers, ...opts });
+    if (res.status === 401 || res.status === 403) { logout(); throw new Error('Unauthorized'); }
+    if (!res.ok) throw new Error((await res.json().catch(()=>({}))).error || await res.text());
+    return res.json();
+}
+
+function toast(msg, type = 'default') {
+  const container = document.getElementById('toastContainer');
+  const el = document.createElement('div'); el.className = `toast ${type}`;
+  let icon = type==='success' ? '✓' : (type==='error' ? '✕' : 'ℹ');
+  el.innerHTML = `<div class="toast-icon">${icon}</div> <span style="flex:1;">${msg}</span>`;
+  container.appendChild(el);
+  setTimeout(() => el.classList.add('show'), 10);
+  setTimeout(() => { el.classList.remove('show'); el.classList.add('hiding'); setTimeout(() => el.remove(), 400); }, 3500);
+}
+
+function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('sidebarOverlay').classList.toggle('show'); }
+function openModal(id) { document.getElementById(id).classList.add('show'); }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+function navTo(pageId, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(pageId).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  if(el) el.classList.add('active');
+  if(window.innerWidth <= 768) toggleSidebar();
+  
+  stopSensorPolling();
+  if (pageId === 'dashboardPage') { loadDashSelects(); startSensorPolling(); }
+  if (pageId === 'devicesPage') loadDevices();
+  if (pageId === 'vegPage') loadVegs();
+  if (pageId === 'settingsPage') loadSettingsSelects();
+  if (pageId === 'historyPage') loadHistorySelects();
+  if (pageId === 'profilePage') loadProfile();
+  if (pageId === 'membersPage') loadMembers(); 
+}
+
+// ==========================================
+// 👥 Members (จัดการสมาชิก - ซ่อนปุ่มถ้าไม่ใช่ Owner)
+// ==========================================
+async function loadMembers() {
+    try {
+        // 1. ดึงข้อมูลสมาชิกฟาร์มทั้งหมด
+        const members = await apiFetch('/farm/members');
+        // 2. ดึงข้อมูลโปรไฟล์ของตัวเอง เพื่อเอา Username ไปเทียบเช็ค Role
+        const profile = await apiFetch('/user/profile'); 
+        
+        const tbody = document.getElementById('membersTableBody');
+        tbody.innerHTML = '';
+        
+        // เช็คว่าตัวเราเองมีสิทธิ์เป็น owner ในฟาร์มนี้ไหม
+        const myInfo = members.find(m => m.username === profile.username);
+        const isMeOwner = myInfo && myInfo.role === 'owner';
+
+        // 🌟 ซ่อนหรือแสดงปุ่ม "เชิญสมาชิกใหม่" ตามสิทธิ์
+        const addBtn = document.getElementById('btn-add-member');
+        if (addBtn) addBtn.style.display = isMeOwner ? 'inline-flex' : 'none';
+
+        if(members.length === 0) { 
+            tbody.innerHTML = '<tr><td colspan=\"5\" style=\"text-align:center; padding:30px; color:var(--text3);\">ยังไม่มีข้อมูลสมาชิก</td></tr>'; 
+            return; 
+        }
+
+        members.forEach(m => {
+            // เช็คว่าผู้ใช้งานคน "เป้าหมาย" ในลูปนี้เป็น owner หรือไม่
+            const isTargetOwner = m.role === 'owner';
+            const roleBadge = isTargetOwner ? '<span class="badge badge-orange">เจ้าของฟาร์ม</span>' : '<span class="badge badge-blue">ผู้ดูแล (Member)</span>';
+            const name = m.first_name + (m.last_name ? ' ' + m.last_name : '');
+            
+            // 🌟 ซ่อนปุ่มลบออก ถ้า:
+            // 1. เราไม่ใช่เจ้าของฟาร์ม (isMeOwner = false) หรือ
+            // 2. เป้าหมายเป็นเจ้าของฟาร์มด้วยกันเอง (ห้ามลบเจ้าของ)
+            let actionBtn = '-';
+            if (isMeOwner && !isTargetOwner) {
+                actionBtn = `<button class="btn btn-sm btn-danger" onclick="removeMember('${m.user_id}', '${m.username}')">ลบออก</button>`;
+            }
+
+            tbody.innerHTML += `<tr>
+                <td style="font-weight:600; color:var(--text);">${name}</td>
+                <td><code style="background:#F1F5F9; padding:4px 8px; border-radius:6px; color:var(--text2);">${m.username}</code></td>
+                <td>${m.email || '-'}</td>
+                <td>${roleBadge}</td>
+                <td style="text-align:right;">${actionBtn}</td>
+            </tr>`;
+        });
+    } catch(err) { toast(err.message, 'error'); }
+}
+
+async function addMember() {
+    const target_username = document.getElementById('member-username').value;
+    if(!target_username) return toast('กรุณากรอก Username ของผู้ที่ต้องการเชิญ', 'error');
+    
+    try {
+        await apiFetch('/farm/members', { method: 'POST', body: JSON.stringify({ target_username }) });
+        toast('เพิ่มสมาชิกเข้าฟาร์มเรียบร้อย!', 'success'); 
+        closeModal('addMemberModal'); 
+        loadMembers();
+        document.getElementById('member-username').value = '';
+    } catch(err) { toast(err.message, 'error'); }
+}
+
+async function removeMember(userId, username) {
+    if(!confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบ ${username} ออกจากฟาร์ม?`)) return;
+    try { 
+        await apiFetch(`/farm/members/${userId}`, { method: 'DELETE' }); 
+        toast('ลบสมาชิกออกจากฟาร์มแล้ว', 'success'); 
+        loadMembers(); 
+    } catch(err) { toast(err.message, 'error'); }
+}
+
+// ==========================================
+// 👤 User Profile
+// ==========================================
+async function loadProfile() {
+    try {
+        const data = await apiFetch('/user/profile');
+        document.getElementById('prof-username').value = data.username || '';
+        document.getElementById('prof-email').value = data.email || '';
+        document.getElementById('prof-firstname').value = data.first_name || '';
+        document.getElementById('prof-lastname').value = data.last_name || '';
+        document.getElementById('prof-phone').value = data.phone || '';
+        document.getElementById('prof-location').value = data.location || '';
+    } catch(e) { console.error('Profile Load Error:', e); }
+}
+
+async function saveProfile() {
+    const payload = {
+        email: document.getElementById('prof-email').value,
+        first_name: document.getElementById('prof-firstname').value,
+        last_name: document.getElementById('prof-lastname').value,
+        phone: document.getElementById('prof-phone').value,
+        location: document.getElementById('prof-location').value
+    };
+    try {
+        await apiFetch('/user/profile', { method: 'PUT', body: JSON.stringify(payload) });
+        toast('อัปเดตข้อมูลส่วนตัวสำเร็จ!', 'success');
+        document.getElementById('display-username').innerText = payload.first_name || 'User';
+        localStorage.setItem('greenspace_user', payload.first_name);
+    } catch(e) { toast('ข้อผิดพลาด: ' + e.message, 'error'); }
+}
+
+// ==========================================
+// 📊 Dashboard
+// ==========================================
+function getStatusBadge(val, type, minDef = 0, maxDef = 100) {
+    if (val == null || isNaN(val)) return '';
+    const v = parseFloat(val);
+    if(v < minDef) return `<span class="badge badge-orange">ต่ำไป ⬇️</span>`;
+    if(v > maxDef) return `<span class="badge badge-red">สูงไป ⬆️</span>`;
+    return `<span class="badge badge-green">เหมาะสม ✅</span>`;
+}
+function getLightLevelText(lux) {
+  if (lux == null || isNaN(lux)) return '--';
+  const v = parseFloat(lux);
+  if (v < 5000) return 'แสงน้อย ☁️';
+  if (v <= 15000) return 'ปานกลาง ⛅';
+  return 'แสงจ้า ☀️';
+}
+
+async function loadDashSelects() {
+    try {
+        const devices = await apiFetch('/devices');
+        const select = document.getElementById('dashDeviceSelect');
+        select.innerHTML = '<option value="">-- เลือกอุปกรณ์/แปลง --</option>';
+        devices.forEach(d => { select.innerHTML += `<option value="${d.device_id}">${d.location || d.device_id}</option>`; });
+        if(devices.length > 0 && !currentDashDevice) currentDashDevice = devices[0].device_id;
+        select.value = currentDashDevice;
+        onDashDeviceChange();
+    } catch (err) {}
+}
+function onDashDeviceChange() { currentDashDevice = document.getElementById('dashDeviceSelect').value; loadDashData(); }
+function startSensorPolling() { if (!sensorInterval) { loadDashData(); sensorInterval = setInterval(loadDashData, 5000); } }
+function stopSensorPolling() { if (sensorInterval) { clearInterval(sensorInterval); sensorInterval = null; } }
+
+async function loadDashData() {
+    if (!currentDashDevice) return;
+    document.getElementById('lastUpdate').innerText = new Date().toLocaleTimeString('th-TH');
+    try {
+        const sensor = await apiFetch(`/sensors/latest?device_id=${currentDashDevice}`);
+        const device = await apiFetch(`/devices/${currentDashDevice}`);
+        
+        if (sensor && sensor.status !== 'no_data') {
+            document.getElementById('sv-moisture').innerHTML = `${sensor.soil_moisture || 0}<span style="font-size:16px">%</span>`;
+            document.getElementById('ss-moisture').innerHTML = getStatusBadge(sensor.soil_moisture, 'moisture', device.min_moisture_threshold || 40, 80);
+            
+            document.getElementById('sv-temp').innerHTML = `${sensor.air_temperature || 0}<span style="font-size:16px">°C</span>`;
+            document.getElementById('ss-temp').innerHTML = getStatusBadge(sensor.air_temperature, 'temp', 20, 35);
+            
+            document.getElementById('sv-light').innerHTML = `${getLightLevelText(sensor.light_intensity)}<br><span style="font-size:13px;color:var(--text3);font-family:var(--mono);">(${sensor.light_intensity || 0} Lux)</span>`;
+            document.getElementById('ss-light').innerHTML = '';
+            
+            document.getElementById('sv-humid').innerHTML = `${sensor.humidity || 0}<span style="font-size:16px">%</span>`;
+            document.getElementById('ss-humid').innerHTML = getStatusBadge(sensor.humidity, 'humid', 40, 80);
+        } else {
+            document.getElementById('sv-moisture').innerHTML = `--`; document.getElementById('ss-moisture').innerHTML = '';
+            document.getElementById('sv-temp').innerHTML = `--`; document.getElementById('ss-temp').innerHTML = '';
+            document.getElementById('sv-light').innerHTML = `--`; document.getElementById('ss-light').innerHTML = '';
+            document.getElementById('sv-humid').innerHTML = `--`; document.getElementById('ss-humid').innerHTML = '';
+        }
+
+        document.getElementById('dashPlotInfo').innerHTML = `
+            <div style="display:flex; justify-content:space-between; border-bottom: 1px solid var(--border); padding-bottom: 12px;">
+                <span style="color:var(--text2)">ชื่อแปลง:</span> <strong style="color:var(--text)">${device.location || '-'}</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; border-bottom: 1px solid var(--border); padding-bottom: 12px;">
+                <span style="color:var(--text2)">พืชที่ปลูก (รวม):</span> <strong style="color:var(--primary)">${device.veg_name || 'ยังไม่ได้ปลูก'}</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between;">
+                <span style="color:var(--text2)">โหมดปั๊มน้ำ:</span> <strong>${device.mode === 'auto' ? 'อัตโนมัติ (Auto)' : 'สั่งเอง (Manual)'}</strong>
+            </div>
+        `;
+
+        const isOnline = device.connection_status === 'online';
+        const sensorStatusBadge = isOnline ? '<span class="badge badge-green">ทำงานปกติ</span>' : '<span class="badge badge-red">ออฟไลน์</span>';
+        document.getElementById('hardwareStatus').innerHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid var(--border); padding-bottom: 12px;">
+            <span style="font-size: 14px; font-weight: 500; color:var(--text2);">💧 เซ็นเซอร์ความชื้นดิน</span>
+            ${sensorStatusBadge}
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid var(--border); padding: 12px 0;">
+            <span style="font-size: 14px; font-weight: 500; color:var(--text2);">🌡️ เซ็นเซอร์อุณหภูมิอากาศ</span>
+            ${sensorStatusBadge}
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid var(--border); padding: 12px 0;">
+            <span style="font-size: 14px; font-weight: 500; color:var(--text2);">☀️ เซ็นเซอร์แสง</span>
+            ${sensorStatusBadge}
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; padding-top: 12px;">
+            <span style="font-size: 14px; font-weight: 500; color:var(--text2);">🔌 ปั๊มน้ำรดน้ำ</span>
+            ${device.mode === 'auto' ? '<span class="badge badge-blue">สแตนด์บาย (Auto)</span>' : '<span class="badge badge-gray">สแตนด์บาย (Manual)</span>'}
+          </div>
+        `;
+
+        const waterLogs = await apiFetch(`/watering?device_id=${currentDashDevice}&days=1&limit=3`);
+        let logHtml = '';
+        if(waterLogs.length === 0) logHtml = '<div style="color:var(--text3); font-size:13px; text-align:center; padding:10px;">ไม่มีประวัติการรดน้ำวันนี้</div>';
+        waterLogs.forEach(log => {
+            logHtml += `
+                <div style="display:flex; justify-content:space-between; align-items:center; padding: 12px 0; border-bottom: 1px dashed var(--border);">
+                    <div><div style="font-size:13px; font-weight:600; color:var(--text);">${new Date(log.start_time).toLocaleString('th-TH')}</div>
+                    <div style="font-size:12px; color:var(--text2); margin-top:2px;">โหมด: ${log.action_trigger}</div></div>
+                    <div class="badge badge-blue">${log.calculated_duration || 0} วินาที</div>
+                </div>`;
+        });
+        document.getElementById('recentWatering').innerHTML = logHtml;
+    } catch (err) {}
+}
+
+function manualWater() {
+    if(!currentDashDevice) return toast('กรุณาเลือกอุปกรณ์ก่อน', 'error');
+    openModal('waterModal');
+}
+async function confirmWater() {
+    try {
+        await apiFetch('/watering/manual', { method: 'POST', body: JSON.stringify({ device_id: currentDashDevice, duration_seconds: document.getElementById('water-dur').value }) });
+        toast('ส่งคำสั่งรดน้ำสำเร็จแล้ว 💦', 'success'); closeModal('waterModal'); loadDashData();
+    } catch(err) { toast('เกิดข้อผิดพลาด: ' + err.message, 'error'); }
+}
+
+// ==========================================
+// 🔌 Devices & Real Bluetooth Scan System
+// ==========================================
+function toggleAddDeviceMethod() {
+    const method = document.getElementById('add-device-method').value;
+    document.getElementById('manual-input-section').style.display = method === 'manual' ? 'block' : 'none';
+    document.getElementById('scan-input-section').style.display = method === 'scan' ? 'block' : 'none';
+}
+
+async function scanRealDevices() {
+    const resArea = document.getElementById('scanResultArea');
+    resArea.innerHTML = '<div style="color:var(--text2); font-size:13px; margin-top:10px;"><div class="spinner" style="width:20px;height:20px;border-width:2px;margin-bottom:8px;"></div><br>รอคุณเลือกอุปกรณ์จากเบราว์เซอร์...</div>';
+    
+    try {
+        const device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true });
+        resArea.innerHTML = `
+            <div style="background:var(--primary-light); padding:10px; border-radius:8px; margin-top:15px;">
+              <div style="color:#065F46; font-weight:700; font-size:14px;">✅ เชื่อมต่อสำเร็จ!</div>
+              <div style="font-size:13px; color:#065F46; margin-top:4px;">อุปกรณ์: ${device.name || 'Unknown ESP32'}</div>
+            </div>
+        `;
+        
+        document.getElementById('new-dev-mac').value = device.id;
+        
+        setTimeout(() => {
+            document.getElementById('add-device-method').value = 'manual';
+            toggleAddDeviceMethod();
+            toast('ดึงรหัสอุปกรณ์เรียบร้อย กรอกชื่อแปลงต่อได้เลย', 'success');
+            resArea.innerHTML = ''; 
+        }, 1500);
+
+    } catch (error) {
+        resArea.innerHTML = `<div style="background:var(--red-bg); padding:10px; border-radius:8px; margin-top:15px; color:var(--red); font-size:13px;">⚠️ ยกเลิก หรือเบราว์เซอร์ไม่รองรับ Bluetooth API</div>`;
+    }
+}
+
+async function loadDevices() {
+    try {
+        const devices = await apiFetch('/devices');
+        const tbody = document.getElementById('devicesTableBody');
+        tbody.innerHTML = '';
+        if(devices.length === 0) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 30px; color:var(--text3);">ยังไม่มีข้อมูลอุปกรณ์ในฟาร์มนี้</td></tr>'; return; }
+        devices.forEach(d => {
+            tbody.innerHTML += `<tr>
+                <td>${d.connection_status === 'online' ? '<span class="badge badge-green">Online</span>' : '<span class="badge badge-red">Offline</span>'}</td>
+                <td style="font-weight:600;">${d.location || '-'}</td>
+                <td><code style="background:#F1F5F9; padding:4px 8px; border-radius:6px; color:var(--text2);">${d.device_id}</code></td>
+                <td><span style="color:var(--primary); font-weight:600;">${d.veg_name || 'ยังไม่ปลูกพืช'}</span></td>
+                <td><span class="badge badge-gray">${d.mode === 'auto' ? 'อัตโนมัติ' : 'Manual'}</span></td>
+                <td style="text-align:right;"><button class="btn btn-sm btn-danger" onclick="deleteDevice('${d.device_id}')">ลบอุปกรณ์</button></td>
+            </tr>`;
+        });
+    } catch(err) {}
+}
+
+async function saveDevice() {
+    const mac = document.getElementById('new-dev-mac').value;
+    const loc = document.getElementById('new-dev-loc').value;
+    if(!mac) return toast('กรุณาระบุ MAC Address ให้ครบถ้วน', 'error');
+    try {
+        await apiFetch('/devices', { method: 'POST', body: JSON.stringify({ device_id: mac, location: loc }) });
+        toast('เพิ่มอุปกรณ์ลงฟาร์มสำเร็จ!', 'success'); closeModal('addDeviceModal'); loadDevices();
+        document.getElementById('new-dev-mac').value = ''; document.getElementById('new-dev-loc').value = '';
+    } catch(err) { toast(err.message, 'error'); }
+}
+async function deleteDevice(mac) {
+    if(!confirm(`ระบบจะลบข้อมูลที่เกี่ยวข้องกับอุปกรณ์นี้ทั้งหมด ยืนยันการลบใช่หรือไม่?`)) return;
+    try { await apiFetch(`/devices/${mac}`, { method: 'DELETE' }); toast('ลบอุปกรณ์เรียบร้อยแล้ว', 'success'); loadDevices(); } catch(err) { toast(err.message, 'error'); }
+}
+
+// ==========================================
+// 🌱 การปลูกผักลงแปลง
+// ==========================================
+async function openPlantingModal() {
+    try {
+        const devs = await apiFetch('/devices');
+        const vegs = await apiFetch('/vegetables');
+        document.getElementById('plantSelectDevice').innerHTML = '<option value="">-- เลือกแปลงเพาะปลูก --</option>' + devs.map(d => `<option value="${d.device_id}">${d.location || d.device_id}</option>`).join('');
+        document.getElementById('plantSelectVeg').innerHTML = '<option value="">-- เลือกพืชจากคลัง --</option>' + vegs.map(v => `<option value="${v.veg_id}">${v.veg_name}</option>`).join('');
+        openModal('addPlantToPlotModal');
+    } catch (err) {}
+}
+async function submitPlantToPlot() {
+    const devId = document.getElementById('plantSelectDevice').value;
+    const vegId = document.getElementById('plantSelectVeg').value;
+    if(!devId || !vegId) return toast('กรุณาเลือกแปลงและพืช', 'error');
+    try {
+        await apiFetch('/device-vegetables', { method: 'POST', body: JSON.stringify({ device_id: devId, veg_id: vegId }) });
+        toast('ปลูกพืชลงแปลงสำเร็จแล้ว 🌱', 'success'); closeModal('addPlantToPlotModal'); loadDevices(); loadDashData();
+    } catch(e) { toast(e.message, 'error'); }
+}
+
+// ==========================================
+// 🥬 Vegs Data (Master)
+// ==========================================
+async function openAddVegModal() {
+    try {
+        const devs = await apiFetch('/devices');
+        document.getElementById('veg-device').innerHTML = '<option value="">-- ไม่บังคับ (เก็บเข้าคลังอย่างเดียว) --</option>' + devs.map(d => `<option value="${d.device_id}">${d.location || d.device_id}</option>`).join('');
+        openModal('addVegModal');
+    } catch (err) {}
+}
+
+async function loadVegs() {
+    try {
+        const vegs = await apiFetch('/vegetables');
+        const tbody = document.getElementById('vegTableBody');
+        tbody.innerHTML = '';
+        if(vegs.length === 0) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:30px; color:var(--text3);">ยังไม่มีข้อมูลพืชในคลัง</td></tr>'; return; }
+        vegs.forEach((v, index) => {
+            tbody.innerHTML += `<tr>
+                <td>${index + 1}</td>
+                <td style="font-weight:600; color:var(--text);">${v.veg_name}</td>
+                <td><span class="badge badge-gray">${getLightLevelText(v.light_intensity)}</span></td>
+                <td><span style="color:var(--blue); font-weight:600;">${v.min_moisture_default || '-'}%</span></td>
+                <td style="text-align:right;"><button class="btn btn-sm btn-danger" onclick="deleteVeg('${v.veg_id}')">ลบข้อมูล</button></td>
+            </tr>`;
+        });
+    } catch(err) {}
+}
+
+async function saveVeg() {
+    const payload = {
+        veg_name: document.getElementById('veg-name').value,
+        min_moisture_default: document.getElementById('veg-min').value,
+        light_intensity: document.getElementById('veg-light').value,
+        device_id: document.getElementById('veg-device').value
+    };
+    if(!payload.veg_name) return toast('กรุณากรอกชื่อพืช', 'error');
+    
+    try {
+        await apiFetch('/vegetables', { method: 'POST', body: JSON.stringify(payload) });
+        toast('เพิ่มพืชมาตรฐานสำเร็จ', 'success'); closeModal('addVegModal'); loadVegs(); loadDevices();
+        document.getElementById('veg-name').value = '';
+    } catch(err) { toast(err.message, 'error'); }
+}
+
+async function deleteVeg(id) {
+    if(!confirm('คุณต้องการลบพืชชนิดนี้ออกจากคลังข้อมูลใช่หรือไม่? (หากมีแปลงที่ปลูกอยู่ จะลบไม่ได้)')) return;
+    try { await apiFetch(`/vegetables/${id}`, { method: 'DELETE' }); toast('ลบพืชออกจากคลังสำเร็จ', 'success'); loadVegs(); } catch(err) { toast(err.message, 'error'); }
+}
+
+// ==========================================
+// ⚙️ Settings
+// ==========================================
+async function loadSettingsSelects() {
+    try {
+        const devices = await apiFetch('/devices');
+        const select = document.getElementById('settingsDeviceSelect');
+        select.innerHTML = '<option value="">-- กรุณาเลือกอุปกรณ์เพื่อตั้งค่า --</option>' + devices.map(d=>`<option value="${d.device_id}">${d.location || d.device_id}</option>`).join('');
+        document.getElementById('settingsForm').style.display = 'none';
+    } catch(err) {}
+}
+
+async function loadSettings() {
+    const mac = document.getElementById('settingsDeviceSelect').value;
+    if(!mac) { document.getElementById('settingsForm').style.display = 'none'; return; }
+    try {
+        const device = await apiFetch(`/devices/${mac}`);
+        document.getElementById('s-mode').value = device.mode || 'auto';
+        document.getElementById('s-low').value = device.min_moisture_threshold || 40;
+        document.getElementById('s-dur').value = device.watering_duration || 120;
+        document.getElementById('settingsForm').style.display = 'flex';
+    } catch(err) { toast(err.message, 'error'); }
+}
+
+async function saveSettings() {
+    const mac = document.getElementById('settingsDeviceSelect').value;
+    try {
+        await apiFetch(`/settings/${mac}`, { method: 'PUT', body: JSON.stringify({ mode: document.getElementById('s-mode').value, min_moisture_threshold: document.getElementById('s-low').value, watering_duration: document.getElementById('s-dur').value }) });
+        toast('อัปเดตการตั้งค่าฮาร์ดแวร์สำเร็จแล้ว!', 'success');
+    } catch(err) { toast(err.message, 'error'); }
+}
+
+// ==========================================
+// 📈 History & Charts
+// ==========================================
+async function loadHistorySelects() {
+    try {
+        const devices = await apiFetch('/devices');
+        const select = document.getElementById('histDeviceSelect');
+        select.innerHTML = '<option value="">-- เลือกอุปกรณ์ --</option>' + devices.map(d => `<option value="${d.device_id}">${d.location || d.device_id}</option>`).join('');
+        if(devices.length > 0) { select.value = devices[0].device_id; loadHistory(); }
+    } catch(err) {}
+}
+
+async function loadHistory() {
+    const mac = document.getElementById('histDeviceSelect').value;
+    const days = parseInt(document.getElementById('histDays').value); 
+    if(!mac) return;
+
+    try {
+        const histData = await apiFetch(`/sensors/history?device_id=${mac}&days=${days}`);
+        
+        const labels = histData.map(d => {
+            const date = new Date(d.recorded_at);
+            if (days === 1) return date.toLocaleTimeString('th-TH', { hour: '2-digit', minute:'2-digit' });
+            return date.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' }) + ' ' + date.toLocaleTimeString('th-TH', { hour: '2-digit', minute:'2-digit' });
+        });
+        
+        const moistures = histData.map(d => d.soil_moisture);
+        const temps = histData.map(d => d.air_temperature);
+        const humidities = histData.map(d => d.humidity || 0);
+
+        const ctx = document.getElementById('historyChart').getContext('2d');
+        if (chartInstance) chartInstance.destroy();
+
+        chartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    { label: 'ความชื้นดิน (%)', data: moistures, borderColor: '#3B82F6', backgroundColor: 'rgba(59, 130, 246, 0.1)', fill: true, tension: 0.4, pointRadius: days >= 30 ? 0 : 3 },
+                    { label: 'อุณหภูมิ (°C)', data: temps, borderColor: '#EF4444', backgroundColor: 'transparent', tension: 0.4, pointRadius: days >= 30 ? 0 : 3 },
+                    { label: 'ความชื้นอากาศ (%)', data: humidities, borderColor: '#06b6d4', backgroundColor: 'transparent', borderDash: [4, 4], tension: 0.4, pointRadius: days >= 30 ? 0 : 3 }
+                ]
+            },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false, 
+                interaction: { mode: 'index', intersect: false },
+                scales: { 
+                    x: { ticks: { autoSkip: true, maxTicksLimit: 12, color: '#64748B' }, grid: { display: false } },
+                    y: { ticks: { color: '#64748B' }, border: { dash: [4, 4] } }
+                },
+                plugins: {
+                    legend: { labels: { usePointStyle: true, boxWidth: 8, font: { family: "'IBM Plex Sans Thai', sans-serif" } } }
+                }
+            }
+        });
+
+        const logs = await apiFetch(`/watering?device_id=${mac}&days=${days}&limit=100`);
+        const tbody = document.getElementById('historyTableBody');
+        tbody.innerHTML = '';
+        if(!logs || logs.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:30px; color:var(--text3);">ไม่มีประวัติการรดน้ำในช่วงเวลานี้</td></tr>';
+        } else {
+            logs.forEach(log => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${new Date(log.start_time).toLocaleString('th-TH')}</td>
+                        <td><span class="badge ${log.action_trigger === 'auto' ? 'badge-green' : 'badge-orange'}">${log.action_trigger}</span></td>
+                        <td>${log.calculated_duration || 0} วินาที</td>
+                        <td><span style="color:#16A34A; font-weight:600;">${log.water_volume || '-'} ลิตร</span></td>
+                    </tr>
+                `;
+            });
+        }
+    } catch(err) { 
+        toast(err.message, 'error'); 
+        const tbody = document.getElementById('historyTableBody');
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:30px; color:var(--text3);">เกิดข้อผิดพลาดในการโหลดข้อมูล</td></tr>';
+    }
+}
+
+// ==========================================
+window.onload = () => {
+    setAuthMode('login'); 
+    const token = localStorage.getItem('greenspace_token');
+    if (!token) document.getElementById('auth-modal').style.display = 'flex';
+    else { document.getElementById('auth-modal').style.display = 'none'; initApp(); }
+};
+function initApp() {
+    const user = localStorage.getItem('greenspace_user') || 'User';
+    document.getElementById('display-username').innerText = user;
+    document.getElementById('display-avatar').innerText = user.charAt(0).toUpperCase();
+    loadDashSelects(); startSensorPolling();
+}
+</script>
+</body>
+</html>

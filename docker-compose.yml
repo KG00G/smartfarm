@@ -1,0 +1,89 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: greenspace_mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: greenspace_root
+      MYSQL_DATABASE: greenspace_db
+      MYSQL_USER: greenspace_user
+      MYSQL_PASSWORD: greenspace_pass
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql_init:/docker-entrypoint-initdb.d
+    networks:
+      - greenspace_net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pgreenspace_root"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    container_name: greenspace_backend
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: greenspace_user
+      DB_PASSWORD: greenspace_pass
+      DB_NAME: greenspace_db
+      PORT: 3000
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - greenspace_net
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+
+  frontend:
+    image: nginx:alpine
+    container_name: greenspace_frontend
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./frontend/src:/usr/share/nginx/html 
+      - ./nginx_config/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - backend
+    networks:
+      - greenspace_net
+
+  cloudflare:
+    image: cloudflare/cloudflared:latest
+    container_name: greenspace_cloudflare
+    networks:
+      - greenspace_net 
+    # ใช้ entrypoint เพื่อบังคับคำสั่ง Quick Tunnel โดยตรง
+    entrypoint: ["cloudflared", "tunnel", "--no-autoupdate", "--url", "http://frontend:80"]
+    restart: always
+    depends_on:
+      - frontend
+  
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: greenspace_phpmyadmin
+    ports:
+      - "8080:80"
+    environment:
+      PMA_HOST: mysql # ต้องตรงกับชื่อ service ฐานข้อมูลของคุณ (ถ้าตั้งชื่ออื่น ให้เปลี่ยนตาม)
+      PMA_PORT: 3306
+    depends_on:
+      - mysql
+
+networks:
+  greenspace_net:
+    driver: bridge
+
+volumes:
+  mysql_data:
