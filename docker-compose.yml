@@ -72,6 +72,7 @@ services:
   
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
+    platform: linux/arm64 #เพิ่มเข้ามา
     container_name: greenspace_phpmyadmin
     ports:
       - "8888:80"
