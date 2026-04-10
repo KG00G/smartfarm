@@ -28,7 +28,7 @@ services:
     container_name: greenspace_backend
     restart: always
     ports:
-      - "3000:3000"
+      - "3001:3001"
     environment:
       DB_HOST: mysql
       DB_PORT: 3306
