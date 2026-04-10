@@ -71,8 +71,7 @@ services:
       - frontend
   
   phpmyadmin:
-    image: phpmyadmin/phpmyadmin
-    platform: linux/arm64 #เพิ่มเข้ามา
+    image: arm64v8/phpmyadmin
     container_name: greenspace_phpmyadmin
     ports:
       - "8888:80"
